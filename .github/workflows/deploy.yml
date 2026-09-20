@@ -16,11 +16,38 @@ env:
 
 jobs:
   # -------------------------------------------------------------------
+  # JOB 0: Olheiro (Verifica se o PC está ligado)
+  # -------------------------------------------------------------------
+  check-runner:
+    name: Verifica Status do WSL
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checar API do GitHub
+        env:
+          # O GitHub fornece esse token automaticamente, não precisa criar nada!
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          echo "Verificando se o Runner no WSL está online..."
+          
+          # Consulta a API do GitHub para ver o status do seu runner
+          STATUS=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" \
+          -H "Accept: application/vnd.github.v3+json" \
+          https://api.github.com/repos/${{ github.repository }}/actions/runners | jq -r '.runners[0].status')
+          
+          if [ "$STATUS" != "online" ]; then
+            echo "🚨 O Runner local está OFFLINE (Sua máquina/WSL está desligada ou o script não está rodando)."
+            echo "Cancelando a pipeline para evitar travamentos na fila."
+            exit 1
+          else
+            echo "✅ Runner local detectado como ONLINE! A esteira vai prosseguir..."
+          fi
+  # -------------------------------------------------------------------
   # JOB 1: Teste
   # -------------------------------------------------------------------
   test:
     name: Teste de Configuração
     runs-on: self-hosted
+    needs: check-runner
     steps:
       - name: Checkout do código
         uses: actions/checkout@v3
