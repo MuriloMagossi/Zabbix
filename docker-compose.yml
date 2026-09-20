@@ -1,0 +1,53 @@
+version: '3.5'
+
+services:
+  # 1. Banco de Dados PostgreSQL
+  postgres-server:
+    image: postgres:14-alpine
+    environment:
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix_pwd
+      - POSTGRES_DB=zabbix
+    volumes:
+      - ./zbx_env/var/lib/postgresql/data:/var/lib/postgresql/data
+    networks:
+      - zabbix-net
+
+  # 2. Servidor Zabbix (Usará a imagem customizada construída pela sua Pipeline)
+  zabbix-server:
+    # A variável ZABBIX_IMAGE é preenchida automaticamente pelo comando 'export' lá na pipeline
+    image: ${ZABBIX_IMAGE:-zabbix/zabbix-server-pgsql:latest}
+    environment:
+      - DB_SERVER_HOST=postgres-server
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix_pwd
+      - POSTGRES_DB=zabbix
+    ports:
+      - "10051:10051"
+    networks:
+      - zabbix-net
+    depends_on:
+      - postgres-server
+
+  # 3. Interface Web do Zabbix (Painel de controle)
+  zabbix-web-nginx-pgsql:
+    image: zabbix/zabbix-web-nginx-pgsql:latest
+    environment:
+      - ZBX_SERVER_HOST=zabbix-server
+      - DB_SERVER_HOST=postgres-server
+      - POSTGRES_USER=zabbix
+      - POSTGRES_PASSWORD=zabbix_pwd
+      - POSTGRES_DB=zabbix
+      - PHP_TZ=America/Sao_Paulo
+    ports:
+      # O painel web ficará acessível na porta 8080 do seu localhost
+      - "8080:8080"
+    networks:
+      - zabbix-net
+    depends_on:
+      - postgres-server
+      - zabbix-server
+
+networks:
+  zabbix-net:
+    driver: bridge
