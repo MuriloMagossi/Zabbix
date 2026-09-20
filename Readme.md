@@ -51,3 +51,5 @@ O arquivo da pipeline deverá ser dividido em três estágios (stages) principai
 
 
 Se precisar de ajuda com a sintaxe do `.gitlab-ci.yml` ou com a orquestração dos containers ao colocar a mão na massa, é só avisar.jd 
+
+Teste
